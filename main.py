@@ -88,22 +88,32 @@ def migrate_preferences():
     new_user = get_user(old_account = False)
 
     old_preferences = old_user.user.preferences()
+
+    for pref in old_preferences:
+        print(
+            "Migrating {:40} to value : {}".format(pref, old_preferences[pref]))
+        new_user.user.preferences.update(**{pref: old_preferences[pref]})
+
     new_preferences = new_user.user.preferences()
 
+    if new_preferences != old_preferences:
+        print("Preference migration failed!")
 
 def show_preferences(old: bool):
     user = get_user(old_account = old)
     preferences = user.user.preferences()
     for pref in preferences:
-        print(pref)
+        print("{:60} -> {}".format(pref, preferences[pref]))
 
 
 def show_subreddits(old: bool):
     user = get_user(old_account = old)
     subreddits = user.user.subreddits(limit = None)
-    print("showing subreddits")
+    count = 0
     for subreddit in subreddits:
         print(str(subreddit))
+        count += 1
+    print("Total count : ", count)
 
 
 if __name__ == '__main__':
@@ -119,7 +129,7 @@ if __name__ == '__main__':
             6. Show new account preferences
         '''
     )
-    selection = input('Enter selection : ')
+    selection = input('Enter selection >>> ')
     selection = int(selection)
 
     if selection == 1:
