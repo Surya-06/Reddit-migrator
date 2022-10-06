@@ -1,7 +1,5 @@
 import praw
 import os
-import argparse
-
 
 HELP_MESSAGE = '''
     Quick tool to migrate your reddit subscriptions & preferences.
@@ -25,42 +23,43 @@ HELP_MESSAGE = '''
 '''
 
 USER_AGENT = 'reddit migrator user agent'
+OLD_USERNAME = os.getenv('REDDIT_USERNAME')
+OLD_PASSWORD = os.getenv('REDDIT_PW')
+OLD_CLIENT_ID = os.getenv('CLIENT_ID')
+OLD_CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+NEW_USERNAME = os.getenv('REDDIT_NEW_USERNAME')
+NEW_PASSWORD = os.getenv('REDDIT_NEW_PW')
+NEW_CLIENT_ID = os.getenv('NEW_CLIENT_ID')
+NEW_CLIENT_SECRET = os.getenv('NEW_CLIENT_SECRET')
 
-def get_user(username, pw, client_id, client_secret):
-    return praw.Reddit(
-        client_id = client_id, 
-        client_secret = client_secret, 
-        username = username,
-         password = pw,
-         user_agent = USER_AGENT)
+def get_user(old_account: bool):
+    if old_account:
+        return praw.Reddit(
+            client_id = OLD_CLIENT_ID,
+            client_secret = OLD_CLIENT_SECRET,
+            username = OLD_USERNAME,
+            password = OLD_PASSWORD,
+            user_agent = USER_AGENT
+        )
+    else:
+        return praw.Reddit(
+            client_id = NEW_CLIENT_ID,
+            client_secret = NEW_CLIENT_SECRET,
+            username = NEW_USERNAME,
+            password = NEW_PASSWORD,
+            user_agent = USER_AGENT
+        )
 
 def migrate_subscriptions():
-    reddit_username = os.getenv('REDDIT_USERNAME')
-    reddit_pw = os.getenv('REDDIT_PW')
-    client_id = os.getenv('CLIENT_ID')
-    client_secret = os.getenv('CLIENT_SECRET')
 
-    old_account = get_user(
-        reddit_username, 
-        reddit_pw, 
-        client_id, 
-        client_secret)
+    old_account = get_user(old_account = True)
 
     print ( 'Logged in as the user : {}' , old_account.user.me() )
     print ( 'scopes : ' , old_account.auth.scopes() )
 
     subscribed_subreddits = old_account.user.subreddits(limit=None)
 
-    reddit_new_username = os.getenv('REDDIT_NEW_USERNAME')
-    reddit_new_pw = os.getenv('REDDIT_NEW_PW')
-    new_client_id = os.getenv('NEW_CLIENT_ID')
-    new_client_secret = os.getenv('NEW_CLIENT_SECRET')
-
-    new_reddit = get_user(
-        reddit_new_username, 
-        reddit_new_pw, 
-        new_client_id, 
-        new_client_secret)
+    new_reddit = get_user(old_account = False)
 
     print ( 'New reddit account : ' , new_reddit.user.me() )
     print ( 'scopes : ' , new_reddit.auth.scopes() )
@@ -84,13 +83,55 @@ def migrate_subscriptions():
         print ( 'Failed to subscribe to : ' , str(sub) )
 
 
+def migrate_preferences():
+    old_user = get_user(old_account = True)
+    new_user = get_user(old_account = False)
+
+    old_preferences = old_user.user.preferences()
+    new_preferences = new_user.user.preferences()
+
+
+def show_preferences(old: bool):
+    user = get_user(old_account = old)
+    preferences = user.user.preferences()
+    for pref in preferences:
+        print(pref)
+
+
+def show_subreddits(old: bool):
+    user = get_user(old_account = old)
+    subreddits = user.user.subreddits(limit = None)
+    print("showing subreddits")
+    for subreddit in subreddits:
+        print(str(subreddit))
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Quick tool to migrate your reddit preferences & subscriptions')
-    parser.add_argument('--subscribe', dest='migrate_subscriptions', help='Migrate subscriptions from old account to new account')
-    args = parser.parse_args()
+    print ( HELP_MESSAGE )
+    print (
+        '''
+            Select an option:
+            1. Migrate subreddits
+            2. Migrate preferences
+            3. Show old account subreddits
+            4. Show new account subreddits
+            5. Show old account preferences
+            6. Show new account preferences
+        '''
+    )
+    selection = input('Enter selection : ')
+    selection = int(selection)
 
-    
-
-
+    if selection == 1:
+        migrate_subscriptions()
+    elif selection == 2:
+        migrate_preferences()
+    elif selection == 3:
+        show_subreddits(old = True)
+    elif selection == 4:
+        show_subreddits(old = False)
+    elif selection == 5:
+        show_preferences(old = True)
+    elif selection == 6:
+        show_preferences(old = False)
 
